@@ -16,8 +16,10 @@
     "./convex/*": "./convex/*.ts"
   },
   "dependencies": {
+    "@ai-sdk/google": "^2.0.13",
     "@clerk/backend": "^2.12.1",
     "@convex-dev/agent": "^0.2.7",
+    "@convex-dev/rag": "^0.5.2",
     "@openrouter/ai-sdk-provider": "^1.2.0",
     "ai": "^5.0.39",
     "convex": "^1.27.0",

@@ -4,7 +4,9 @@ import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { components } from "../_generated/api";
 import { action, mutation, query } from "../_generated/server";
+import { OPERATOR_MESSAGE_ENHANCEMENT_PROMPT } from "../system/ai/agents/prompt";
 import { supportAgent } from "../system/ai/agents/supportAgent";
+import { openrouter } from "../system/ai/providers";
 
 export const enhanceResponse = action({
   args: {
@@ -30,12 +32,11 @@ export const enhanceResponse = action({
     }
 
     const response = await generateText({
-      model: "z-ai/glm-4.5-air:free",
+      model: openrouter.chat("z-ai/glm-4.5-air:free"),
       messages: [
         {
           role: "system",
-          content:
-            "Refine the operator's message to ensure it is professional, clear, and helpful while preserving the original intent and key information. Improve tone, structure, and readability so that it communicates effectively and supports the recipient in understanding the message.",
+          content: OPERATOR_MESSAGE_ENHANCEMENT_PROMPT,
         },
         {
           role: "user",
@@ -93,6 +94,10 @@ export const create = mutation({
         code: "BAD_REQUEST",
         message: "Conversation is resolved",
       });
+    }
+
+    if (conversation.status === "unresolved") {
+      await ctx.db.patch(args.conversationId, { status: "escalated" });
     }
 
     await saveMessage(ctx, components.agent, {
