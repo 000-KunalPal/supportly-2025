@@ -8,6 +8,7 @@ import { WidgetInboxScreen } from "@/modules/widget/ui/screens/widget-inbox-scre
 import { WidgetLoadingScreen } from "@/modules/widget/ui/screens/widget-loading-screen";
 import { WidgetSelectionScreen } from "@/modules/widget/ui/screens/widget-selection-screen";
 import { useAtomValue } from "jotai";
+import { WidgetContactScreen } from "../screens/widget-contact-screen";
 import { WidgetVoiceScreen } from "../screens/widget-voice-screen";
 
 interface WidgetViewProps {
@@ -25,12 +26,11 @@ export const WidgetView = ({ organizationId }: WidgetViewProps) => {
     inbox: <WidgetInboxScreen />,
     selection: <WidgetSelectionScreen />,
     chat: <WidgetChatScreen />,
-    contact: <p>TODO: contact</p>,
+    contact: <WidgetContactScreen />,
   };
 
   return (
-    // TODO: confirm whether min-h-screen & min-w-screen is needed
-    <main className='min-h-screen min-w-screen flex h-full w-full flex-col overflow-hidden rounded-xl border bg-muted'>
+    <main className='flex h-full w-full flex-col overflow-hidden rounded-xl border bg-muted'>
       {screenComponents[screen]}
     </main>
   );
