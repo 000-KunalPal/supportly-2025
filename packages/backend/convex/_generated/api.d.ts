@@ -8,10 +8,15 @@
  * @module
  */
 
+import type * as lib_encryption from "../lib/encryption.js";
 import type * as lib_extractTextContent from "../lib/extractTextContent.js";
 import type * as private_conversations from "../private/conversations.js";
 import type * as private_files from "../private/files.js";
 import type * as private_messages from "../private/messages.js";
+import type * as private_plugins from "../private/plugins.js";
+import type * as private_secrets from "../private/secrets.js";
+import type * as private_vapi from "../private/vapi.js";
+import type * as private_widgetSettings from "../private/widgetSettings.js";
 import type * as public_contactSessions from "../public/contactSessions.js";
 import type * as public_conversations from "../public/conversations.js";
 import type * as public_messages from "../public/messages.js";
@@ -25,6 +30,8 @@ import type * as system_ai_tools_resolveConversation from "../system/ai/tools/re
 import type * as system_ai_tools_search from "../system/ai/tools/search.js";
 import type * as system_contactSessions from "../system/contactSessions.js";
 import type * as system_conversations from "../system/conversations.js";
+import type * as system_plugins from "../system/plugins.js";
+import type * as system_secrets from "../system/secrets.js";
 import type * as users from "../users.js";
 
 import type {
@@ -42,10 +49,15 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  "lib/encryption": typeof lib_encryption;
   "lib/extractTextContent": typeof lib_extractTextContent;
   "private/conversations": typeof private_conversations;
   "private/files": typeof private_files;
   "private/messages": typeof private_messages;
+  "private/plugins": typeof private_plugins;
+  "private/secrets": typeof private_secrets;
+  "private/vapi": typeof private_vapi;
+  "private/widgetSettings": typeof private_widgetSettings;
   "public/contactSessions": typeof public_contactSessions;
   "public/conversations": typeof public_conversations;
   "public/messages": typeof public_messages;
@@ -59,6 +71,8 @@ declare const fullApi: ApiFromModules<{
   "system/ai/tools/search": typeof system_ai_tools_search;
   "system/contactSessions": typeof system_contactSessions;
   "system/conversations": typeof system_conversations;
+  "system/plugins": typeof system_plugins;
+  "system/secrets": typeof system_secrets;
   users: typeof users;
 }>;
 declare const fullApiWithMounts: typeof fullApi;

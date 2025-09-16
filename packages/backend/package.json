@@ -21,6 +21,7 @@
     "@convex-dev/agent": "^0.2.7",
     "@convex-dev/rag": "^0.5.2",
     "@openrouter/ai-sdk-provider": "^1.2.0",
+    "@vapi-ai/server-sdk": "^0.10.1",
     "ai": "^5.0.39",
     "convex": "^1.27.0",
     "convex-helpers": "^0.1.104",
