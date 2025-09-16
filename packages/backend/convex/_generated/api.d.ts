@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as http from "../http.js";
 import type * as lib_encryption from "../lib/encryption.js";
 import type * as lib_extractTextContent from "../lib/extractTextContent.js";
 import type * as private_contactSessions from "../private/contactSessions.js";
@@ -35,6 +36,7 @@ import type * as system_contactSessions from "../system/contactSessions.js";
 import type * as system_conversations from "../system/conversations.js";
 import type * as system_plugins from "../system/plugins.js";
 import type * as system_secrets from "../system/secrets.js";
+import type * as system_subscriptions from "../system/subscriptions.js";
 import type * as users from "../users.js";
 
 import type {
@@ -52,6 +54,7 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  http: typeof http;
   "lib/encryption": typeof lib_encryption;
   "lib/extractTextContent": typeof lib_extractTextContent;
   "private/contactSessions": typeof private_contactSessions;
@@ -79,6 +82,7 @@ declare const fullApi: ApiFromModules<{
   "system/conversations": typeof system_conversations;
   "system/plugins": typeof system_plugins;
   "system/secrets": typeof system_secrets;
+  "system/subscriptions": typeof system_subscriptions;
   users: typeof users;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
