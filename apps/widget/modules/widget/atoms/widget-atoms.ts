@@ -24,3 +24,9 @@ export const contactSessionIdAtomFamily = atomFamily(
 export const conversationIdAtom = atom<Id<"conversations"> | null>(null);
 
 export const widgetSettingsAtom = atom<Doc<"widgetSettings"> | null>(null);
+
+export const vapiSecretsAtom = atom<{
+  apiPublicKey: string;
+} | null>(null);
+
+export const hasVapiSecretsAtom = atom((get) => get(vapiSecretsAtom) !== null);
