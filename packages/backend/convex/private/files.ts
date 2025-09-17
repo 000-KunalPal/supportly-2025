@@ -8,6 +8,7 @@ import {
 } from "@convex-dev/rag";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
+import { internal } from "../_generated/api";
 import { Id } from "../_generated/dataModel";
 import { action, mutation, query, QueryCtx } from "../_generated/server";
 import { extractTextContent } from "../lib/extractTextContent";
@@ -44,6 +45,20 @@ export const addFile = action({
       throw new ConvexError({
         code: "NOT_FOUND",
         message: "Organization ID not found",
+      });
+    }
+
+    const subscription = await ctx.runQuery(
+      internal.system.subscriptions.getByOrganizationId,
+      {
+        organizationId: orgId,
+      }
+    );
+
+    if (!subscription || subscription.status !== "active") {
+      throw new ConvexError({
+        code: "FORBIDDEN",
+        message: "Active subscription required for AI features",
       });
     }
 

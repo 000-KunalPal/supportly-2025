@@ -31,6 +31,7 @@ import { useInfiniteScroll } from "@workspace/ui/hooks/use-infinite-scroll";
 import { cn } from "@workspace/ui/lib/utils";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import z from "zod";
 import { ConversationStatusButton } from "../components/conversation-status-button";
 
@@ -86,6 +87,7 @@ export const ConversationIdView = ({
 
       form.setValue("message", response);
     } catch (error) {
+      toast.error("Something went wrong");
       console.log("error: ", error);
     } finally {
       setIsEnhancing(false);

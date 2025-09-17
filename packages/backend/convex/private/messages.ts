@@ -2,7 +2,7 @@ import { saveMessage } from "@convex-dev/agent";
 import { generateText } from "ai";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
-import { components } from "../_generated/api";
+import { components, internal } from "../_generated/api";
 import { action, mutation, query } from "../_generated/server";
 import { OPERATOR_MESSAGE_ENHANCEMENT_PROMPT } from "../system/ai/agents/prompt";
 import { supportAgent } from "../system/ai/agents/supportAgent";
@@ -28,6 +28,20 @@ export const enhanceResponse = action({
       throw new ConvexError({
         code: "NOT_FOUND",
         message: "Organization ID not found",
+      });
+    }
+
+    const subscription = await ctx.runQuery(
+      internal.system.subscriptions.getByOrganizationId,
+      {
+        organizationId: orgId,
+      }
+    );
+
+    if (!subscription || subscription.status !== "active") {
+      throw new ConvexError({
+        code: "FORBIDDEN",
+        message: "Active subscription required for AI features",
       });
     }
 

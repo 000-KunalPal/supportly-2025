@@ -29,8 +29,6 @@ export const upsert = mutation({
         message: "Organization ID not found",
       });
 
-    // TODO: CHECK FOR SUBSCRIPTION
-
     await ctx.runMutation(internal.system.secrets.upsert, {
       organizationId,
       apiKey: args.apiKey,
