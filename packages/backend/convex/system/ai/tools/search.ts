@@ -3,7 +3,8 @@ import { generateText } from "ai";
 import z from "zod";
 import { internal } from "../../../_generated/api";
 import { SEARCH_INTERPRETER_PROMPT } from "../agents/prompt";
-import { openrouter } from "../providers";
+// import { openrouter } from "../providers";
+import { google } from "@ai-sdk/google";
 import { rag } from "../rag";
 
 export const searchTool = createTool({
@@ -51,7 +52,7 @@ export const searchTool = createTool({
           content: `User asked: "${args.query}"\n\nSearch results: ${contextText}`,
         },
       ],
-      model: openrouter.chat("openrouter/polaris-alpha"),
+      model: google("gemini-2.0-flash"),
     });
 
     return response.text;

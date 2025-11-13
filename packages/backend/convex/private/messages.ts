@@ -6,7 +6,8 @@ import { components, internal } from "../_generated/api";
 import { action, mutation, query } from "../_generated/server";
 import { OPERATOR_MESSAGE_ENHANCEMENT_PROMPT } from "../system/ai/agents/prompt";
 import { supportAgent } from "../system/ai/agents/supportAgent";
-import { openrouter } from "../system/ai/providers";
+// import { openrouter } from "../system/ai/providers";
+import { google } from "@ai-sdk/google";
 
 export const enhanceResponse = action({
   args: {
@@ -46,7 +47,7 @@ export const enhanceResponse = action({
     }
 
     const response = await generateText({
-      model: openrouter.chat("openrouter/polaris-alpha"),
+      model: google("gemini-2.0-flash"),
       messages: [
         {
           role: "system",
