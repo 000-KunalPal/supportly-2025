@@ -51,7 +51,7 @@ export const searchTool = createTool({
           content: `User asked: "${args.query}"\n\nSearch results: ${contextText}`,
         },
       ],
-      model: openrouter.chat("z-ai/glm-4.5-air:free"),
+      model: openrouter.chat("openrouter/polaris-alpha"),
     });
 
     return response.text;

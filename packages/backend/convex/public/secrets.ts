@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import { action } from "../_generated/server";
 import { decryptKey } from "../lib/encryption";
@@ -28,8 +28,23 @@ export const getVapiSecrets = action({
     const privateKeyName = VapiPluginPrivate.keyName;
     const publicKeyName = VapiPluginPublic.keyName;
 
-    const apiPrivateKey = await decryptKey(VapiPluginPrivate.encryptedKey);
-    const apiPublicKey = await decryptKey(VapiPluginPublic.encryptedKey);
+    const encryptionKey = process.env.ENCRYPTION_KEY;
+
+    if (!encryptionKey) {
+      throw new ConvexError({
+        code: "NOT_FOUND",
+        message: "ENCRYPTION_KEY environment variable is not set",
+      });
+    }
+
+    const apiPrivateKey = await decryptKey(
+      VapiPluginPrivate.encryptedKey,
+      encryptionKey
+    );
+    const apiPublicKey = await decryptKey(
+      VapiPluginPublic.encryptedKey,
+      encryptionKey
+    );
 
     if (!privateKeyName || !publicKeyName) {
       return null;

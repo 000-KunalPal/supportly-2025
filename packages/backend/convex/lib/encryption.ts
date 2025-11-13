@@ -1,96 +1,162 @@
-// encryption.ts (Node/Edge-safe)
-
-const ENCRYPTION_KEY =
-  process.env.ENCRYPTION_KEY ||
-  "9210c86ce023b8dcd155db173f31ee9f0674135f8c035596a8083ed387400394"; // looks like hex [web:22]
-
-if (!ENCRYPTION_KEY && typeof window === "undefined") {
-  throw new Error("ENCRYPTION_KEY is required"); // guard [web:2]
-}
-
 const ALGORITHM = "AES-GCM";
+const KEY_LENGTH = 32; // 256 bits
+const IV_LENGTH = 12; // 12 bytes for GCM
 
-// Quick sanity check for obviously too-short passphrases
-if (ENCRYPTION_KEY && ENCRYPTION_KEY.length < 8) {
-  throw new Error("ENCRYPTION_KEY must be at least 8 characters long"); // guard [web:2]
-}
-
-// Decode key material: prefer hex if it matches, otherwise treat as base64.
-// Avoid atob/btoa on server; use Buffer in Node runtimes. [web:26][web:23]
-function decodeKeyMaterial(key: string): Uint8Array {
-  const isHex = /^[0-9a-fA-F]+$/.test(key) && key.length % 2 === 0; // simple hex check [web:22]
-  if (isHex) {
-    return new Uint8Array(Buffer.from(key, "hex")); // hex → bytes [web:22][web:23]
+// Helper: Convert hex string to Uint8Array (without Buffer)
+function hexToBytes(hex: string): Uint8Array<ArrayBuffer> {
+  if (hex.length % 2 !== 0) {
+    throw new Error("Invalid hex string");
   }
-  // Assume base64 when not hex
-  return new Uint8Array(Buffer.from(key, "base64")); // base64 → bytes [web:26][web:23]
+  const buffer = new ArrayBuffer(hex.length / 2);
+  const bytes = new Uint8Array(buffer);
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
+  }
+  return bytes;
 }
 
-const baseKeyBuffer = decodeKeyMaterial(ENCRYPTION_KEY);
-
-if (baseKeyBuffer.length === 0) {
-  throw new Error("Decoded key is empty"); // guard [web:2]
+// Helper: Convert base64 string to Uint8Array (without atob in Node)
+function base64ToBytes(base64: string): Uint8Array<ArrayBuffer> {
+  const binaryString = atob(base64);
+  const buffer = new ArrayBuffer(binaryString.length);
+  const bytes = new Uint8Array(buffer);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
 }
 
-// Expand/truncate to 32 bytes deterministically without TypeScript index error.
-// The ?? 0 satisfies noUncheckedIndexedAccess safety. [web:2][web:1]
-const keyBuffer = new Uint8Array(32);
-for (let i = 0; i < 32; i++) {
-  const idx = baseKeyBuffer.length ? i % baseKeyBuffer.length : 0; // safe modulo [web:2]
-  keyBuffer[i] = baseKeyBuffer[idx] ?? 0; // default to 0 if undefined [web:1]
+// Helper: Convert Uint8Array to base64 string (without btoa issues)
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunkSize = 0x8000; // Process in chunks to avoid stack overflow
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+    binary += String.fromCharCode(...chunk);
+  }
+  return btoa(binary);
 }
 
-let cryptoKey: CryptoKey | null = null;
+// Derive a 32-byte key from environment variable or provided key string
+function deriveKey(keyString: string): Uint8Array<ArrayBuffer> {
+  if (!keyString || keyString.length < 8) {
+    throw new Error("ENCRYPTION_KEY must be at least 8 characters long");
+  }
 
-async function getCryptoKey(): Promise<CryptoKey> {
-  if (!cryptoKey) {
-    cryptoKey = await crypto.subtle.importKey(
+  // Check if it's a hex string
+  const isHex = /^[0-9a-fA-F]+$/.test(keyString) && keyString.length % 2 === 0;
+
+  let baseKeyBuffer: Uint8Array<ArrayBuffer>;
+  if (isHex && keyString.length === 64) {
+    // Perfect 32-byte hex key
+    baseKeyBuffer = hexToBytes(keyString);
+  } else if (isHex) {
+    // Other hex format
+    baseKeyBuffer = hexToBytes(keyString);
+  } else {
+    // Treat as UTF-8 string - create with proper ArrayBuffer
+    const encoder = new TextEncoder();
+    const encoded = encoder.encode(keyString);
+    const buffer = new ArrayBuffer(encoded.length);
+    const view = new Uint8Array(buffer);
+    view.set(encoded);
+    baseKeyBuffer = view;
+  }
+
+  if (baseKeyBuffer.length === 0) {
+    throw new Error("Decoded key is empty");
+  }
+
+  // Expand/truncate to exactly 32 bytes with proper ArrayBuffer type
+  const keyArrayBuffer = new ArrayBuffer(KEY_LENGTH);
+  const keyBuffer = new Uint8Array(keyArrayBuffer);
+  for (let i = 0; i < KEY_LENGTH; i++) {
+    const idx = i % baseKeyBuffer.length;
+    keyBuffer[i] = baseKeyBuffer[idx] ?? 0;
+  }
+
+  return keyBuffer;
+}
+
+// Import the crypto key (cached)
+let cryptoKeyCache: CryptoKey | null = null;
+
+async function getCryptoKey(keyString: string): Promise<CryptoKey> {
+  if (!cryptoKeyCache) {
+    const keyBuffer = deriveKey(keyString);
+    cryptoKeyCache = await crypto.subtle.importKey(
       "raw",
       keyBuffer,
       { name: ALGORITHM, length: 256 },
       false,
       ["encrypt", "decrypt"]
-    ); // WebCrypto AES-GCM import [web:7]
+    );
   }
-  return cryptoKey;
+  return cryptoKeyCache;
 }
 
-export async function encryptKey(plaintext: string): Promise<string> {
-  const iv = crypto.getRandomValues(new Uint8Array(12)); // 12-byte IV for GCM [web:7]
-  const key = await getCryptoKey();
+/**
+ * Encrypt a plaintext string using AES-GCM
+ * @param plaintext - The string to encrypt
+ * @param encryptionKey - The encryption key (from env vars in Convex functions)
+ * @returns Base64-encoded encrypted data (IV + ciphertext)
+ */
+export async function encryptKey(
+  plaintext: string,
+  encryptionKey: string
+): Promise<string> {
+  const ivBuffer = new ArrayBuffer(IV_LENGTH);
+  const iv = new Uint8Array(ivBuffer);
+  crypto.getRandomValues(iv);
+
+  const key = await getCryptoKey(encryptionKey);
   const plaintextBytes = new TextEncoder().encode(plaintext);
+
   const encryptedBuffer = await crypto.subtle.encrypt(
     { name: ALGORITHM, iv },
     key,
     plaintextBytes
-  ); // AES-GCM encrypt [web:7]
+  );
 
   const encryptedArray = new Uint8Array(encryptedBuffer);
-  const combined = new Uint8Array(iv.length + encryptedArray.length);
+  const combinedBuffer = new ArrayBuffer(iv.length + encryptedArray.length);
+  const combined = new Uint8Array(combinedBuffer);
   combined.set(iv, 0);
   combined.set(encryptedArray, iv.length);
 
-  // Encode to base64 without btoa; Buffer works in Node runtimes. [web:23][web:26]
-  return Buffer.from(combined).toString("base64");
+  return bytesToBase64(combined);
 }
 
-export async function decryptKey(encryptedData: string): Promise<string> {
-  // Decode base64 without atob; Buffer works in Node runtimes. [web:23][web:26]
-  const combined = new Uint8Array(Buffer.from(encryptedData, "base64"));
+/**
+ * Decrypt an encrypted string using AES-GCM
+ * @param encryptedData - Base64-encoded encrypted data (IV + ciphertext)
+ * @param encryptionKey - The encryption key (from env vars in Convex functions)
+ * @returns The decrypted plaintext string
+ */
+export async function decryptKey(
+  encryptedData: string,
+  encryptionKey: string
+): Promise<string> {
+  const combined = base64ToBytes(encryptedData);
 
-  const iv = combined.slice(0, 12); // 12-byte IV [web:7]
-  const encrypted = combined.slice(12);
+  const iv = combined.slice(0, IV_LENGTH);
+  const encrypted = combined.slice(IV_LENGTH);
 
-  const key = await getCryptoKey();
+  const key = await getCryptoKey(encryptionKey);
   const decryptedBuffer = await crypto.subtle.decrypt(
     { name: ALGORITHM, iv },
     key,
     encrypted
-  ); // AES-GCM decrypt [web:7]
+  );
 
   return new TextDecoder().decode(decryptedBuffer);
 }
 
+/**
+ * Mask an API key for display purposes
+ * @param key - The key to mask
+ * @returns A masked version showing only first and last 4 characters
+ */
 export function maskKey(key: string): string {
   if (key.length <= 8) {
     return "*".repeat(key.length);

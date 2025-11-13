@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { internalMutation, internalQuery } from "../_generated/server";
 import { encryptKey } from "../lib/encryption";
 
@@ -15,7 +15,15 @@ export const upsert = internalMutation({
     apiKey: v.string(),
   },
   handler: async (ctx, args) => {
-    const encryptedKey = await encryptKey(args.apiKey);
+    const encryptionKey = process.env.ENCRYPTION_KEY;
+
+    if (!encryptionKey) {
+      throw new ConvexError({
+        code: "NOT_FOUND",
+        message: "ENCRYPTION_KEY environment variable is not set",
+      });
+    }
+    const encryptedKey = await encryptKey(args.apiKey, encryptionKey);
 
     const existingPlugin = await ctx.db
       .query("plugins")

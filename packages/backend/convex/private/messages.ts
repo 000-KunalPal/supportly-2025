@@ -46,7 +46,7 @@ export const enhanceResponse = action({
     }
 
     const response = await generateText({
-      model: openrouter.chat("z-ai/glm-4.5-air:free"),
+      model: openrouter.chat("openrouter/polaris-alpha"),
       messages: [
         {
           role: "system",
